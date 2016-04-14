@@ -38,6 +38,7 @@ project "eternity"
 
         files { "src/eternity/**.cpp" }
         files { "src/eternity/**.h" }
+		files { "ext/korv/src/korv/**.h" }
 
         excludes { "src/builder/**.*" }
         excludes { "src/putki/**.*" }
