@@ -1,0 +1,6 @@
+[submodule "ext/putki"]
+	path = ext/putki
+	url = https://github.com/raxptor/putki-cleanup
+[submodule "ext/korv"]
+	path = ext/korv
+	url = https://github.com/raxptor/korv
