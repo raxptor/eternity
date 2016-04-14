@@ -30,7 +30,7 @@ int run_putki_builder(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
-	inki::bind_eternit5();
+	inki::bind_eternity();
 	putki::builder::set_builder_configurator(&app_register_handlers);
 	putki::builder::set_packager(&app_build_packages);
 	return run_putki_builder(argc, argv);

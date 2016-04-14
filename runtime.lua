@@ -3,13 +3,13 @@ solution "Eternity"
 	location "build"
 	targetdir "build"
 
-        platforms { "x64" }
+	platforms { "x64" }
 
 	configurations {"Debug", "Release", "Ship"}
 	
 	configuration {"Debug or Release"}
 		defines("LIVEUPDATE_ENABLE")
-		defines("PUTKI_ENABLE_LOG")
+		defines("PUTKI_ENABLE_LOG")		
 		
 	configuration {"Ship"}
 		defines("SHIP")
@@ -22,12 +22,13 @@ solution "Eternity"
 	
 	flags { "Symbols" }
 	libdirs {"/usr/lib"}
+	defines {"_CRT_SECURE_NO_WARNINGS"}
 
 	dofile("ext/putki/runtime.lua")
 	dofile("ext/korv/libs.lua")
 
-project "eternity-runtime"
-        kind "ConsoleApp"
+project "eternity"
+        kind "WindowedApp"
         language "C++"
         targetname "eternity"
 
@@ -35,8 +36,8 @@ project "eternity-runtime"
         
         putki_typedefs_runtime("src/types", true)
 
-        files { "src/**.cpp" }
-        files { "src/**.h" }
+        files { "src/eternity/**.cpp" }
+        files { "src/eternity/**.h" }
 
         excludes { "src/builder/**.*" }
         excludes { "src/putki/**.*" }
