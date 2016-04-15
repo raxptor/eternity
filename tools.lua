@@ -78,6 +78,7 @@ solution "Tools"
 
         files { "src/putki/dll-main.cpp" }
         files { "src/builder/**.*" }
+		files { "src/fontanell/**.*" }
         links { "eternity-putki-lib"}
         includedirs { "src" }
 

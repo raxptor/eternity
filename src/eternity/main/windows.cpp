@@ -1,9 +1,21 @@
 #include <windows.h>
 #include <windowsx.h>
+#include <stdio.h>
+
+#include "fontanell/ttf.h"
 
 int mouse_x = 0;
 int mouse_y = 0;
 bool mouse_down = false;
+
+struct shape
+{
+	float x[64];
+	float y[64];
+	int n;
+};
+
+fontanell::ttf::data* font = 0;
 
 LRESULT WINAPI MsgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
@@ -14,7 +26,17 @@ LRESULT WINAPI MsgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 			return 0;
 
 		case WM_PAINT:
-			ValidateRect( hWnd, NULL );
+			{
+				HDC dc = GetDC(hWnd);
+				HBRUSH br = GetStockBrush(WHITE_BRUSH);
+				HPEN pen = GetStockPen(WHITE_PEN);
+				SelectBrush(dc, br);
+				SelectPen(dc, pen);
+				MoveToEx(dc, 0, 0, 0);
+				LineTo(dc, 100, 100);
+				ValidateRect(hWnd, NULL);
+				ReleaseDC(hWnd, dc);
+			}
 			return 0;
 
 		case WM_MOUSEMOVE:
@@ -50,6 +72,7 @@ HWND create_window()
 
 	wc.hIcon = 0;
 	wc.hCursor = LoadCursor( NULL, IDC_ARROW );
+	wc.hbrBackground = GetStockBrush(BLACK_BRUSH);
 
 	::RegisterClassExA( &wc );
 
@@ -69,8 +92,17 @@ HWND create_window()
 	return hWnd;
 }
 
+char fbuf[1024*1024*10];
+
 int main(int argc, const char* argv[])
 {
+	FILE *fp = fopen("../data/raw/font/Lacuna.ttf", "rb");
+	size_t sz = fread(fbuf, 1, sizeof(fbuf), fp);
+	fclose(fp);
+
+	font = fontanell::ttf::open(fbuf, sz);
+
+
 	HWND window = create_window();
 	ShowWindow(window, SW_SHOW);
 
@@ -87,7 +119,7 @@ int main(int argc, const char* argv[])
 			if (m.message == WM_QUIT)
 			{
 				quit = true;
-			}			
+			}
 		}
 	}
 
