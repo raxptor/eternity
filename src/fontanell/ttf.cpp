@@ -111,8 +111,8 @@ namespace fontanell
 				return -1;
 			}
 
-			uint32_t real_offset = swap32(record->offset);
-			const ttf_fmt::cmap_hdr* cmap = (const ttf_fmt::cmap_hdr*)(d->buf + swap32(record->offset));
+			uint32_t record_offset = swap32(record->offset);
+			const ttf_fmt::cmap_hdr* cmap = (const ttf_fmt::cmap_hdr*)(d->buf + record_offset);
 			if (cmap->version != swap16(0))
 			{
 				d->error = "Invalid cmap table";
@@ -120,17 +120,30 @@ namespace fontanell
 			}
 
 			uint16_t count = swap16(cmap->num_tables);
-			const ttf_fmt::cmap_encoding* encoding = (const ttf_fmt::cmap_encoding*)(d->buf + swap32(record->offset) + sizeof(ttf_fmt::cmap_hdr));
+			const ttf_fmt::cmap_encoding* cmap_enc = (const ttf_fmt::cmap_encoding*)(d->buf + record_offset + sizeof(ttf_fmt::cmap_hdr));
 
 			for (uint16_t i=0;i!=count;i++)
 			{
-				uint16_t plat = swap16(encoding[i].platform);
-				uint16_t enc = swap16(encoding[i].encoding);
-				if (!plat)
-				{
-					// apple unicode.
+				uint16_t platform = swap16(cmap_enc[i].platform);
+				uint16_t encoding = swap16(cmap_enc[i].encoding);
 
+				const char* table = d->buf + record_offset + swap32(cmap_enc[i].offset);
+				const uint16_t* format_ptr = (const uint16_t*) table;
+				const uint16_t format = swap16(*format_ptr);
+				switch (format)
+				{
+					case 0: // Byte encoding table
+						{
+
+							uint16_t length = swap16(format_ptr[1]);
+							uint16_t language = swap16(format_ptr[2]);
+							const unsigned char* glyphs = (const unsigned char*) &format_ptr[3];
+							break;
+						}
+					default:
+						break;
 				}
+
 			}
 
 			return -1;
