@@ -1,5 +1,6 @@
 #include "ttf.h"
 #include <stdint.h>
+#include <stdio.h>
 
 namespace fontanell
 {
@@ -102,13 +103,13 @@ namespace fontanell
 			return 0;
 		}
 
-		int32_t lookup_glyph(data* d, uint32_t character)
+		bool map(data*d, const uint32_t* in, uint32_t count, uint32_t* out)
 		{
 			const ttf_fmt::table_record* record = get_table(d, make_tag("cmap"));
 			if (!record)
 			{
 				d->error = "No cmap record";
-				return -1;
+				return false;
 			}
 
 			uint32_t record_offset = swap32(record->offset);
@@ -116,13 +117,13 @@ namespace fontanell
 			if (cmap->version != swap16(0))
 			{
 				d->error = "Invalid cmap table";
-				return -1;
+				return false;
 			}
 
-			uint16_t count = swap16(cmap->num_tables);
+			uint16_t tables = swap16(cmap->num_tables);
 			const ttf_fmt::cmap_encoding* cmap_enc = (const ttf_fmt::cmap_encoding*)(d->buf + record_offset + sizeof(ttf_fmt::cmap_hdr));
 
-			for (uint16_t i=0;i!=count;i++)
+			for (uint16_t i=0;i!=tables;i++)
 			{
 				uint16_t platform = swap16(cmap_enc[i].platform);
 				uint16_t encoding = swap16(cmap_enc[i].encoding);
@@ -138,7 +139,18 @@ namespace fontanell
 							uint16_t length = swap16(format_ptr[1]);
 							uint16_t language = swap16(format_ptr[2]);
 							const unsigned char* glyphs = (const unsigned char*) &format_ptr[3];
-							break;
+							for (uint32_t i=0;i!=count;i++)
+							{
+								if (in[i] < length)
+								{
+									out[i] = glyphs[in[i]];
+								}
+								else
+								{
+									out[i] = 0;
+								}								
+							}
+							return true;							
 						}
 					default:
 						break;
@@ -146,7 +158,7 @@ namespace fontanell
 
 			}
 
-			return -1;
+			return false;
 		}
 
 		data* open(const char* buf, size_t size)
@@ -168,8 +180,6 @@ namespace fontanell
 				d->error = "Unsupported file format";
 				return d;
 			}
-
-			lookup_glyph(d, (uint32_t)'A');
 
 			return d;
 		}

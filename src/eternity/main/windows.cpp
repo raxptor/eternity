@@ -102,6 +102,10 @@ int main(int argc, const char* argv[])
 
 	font = fontanell::ttf::open(fbuf, sz);
 
+	uint32_t in[2] = {(uint32_t)'A', (uint32_t)'B'};
+	uint32_t glyphs[2];
+	fontanell::ttf::map(font, in, 2, glyphs);
+
 
 	HWND window = create_window();
 	ShowWindow(window, SW_SHOW);
