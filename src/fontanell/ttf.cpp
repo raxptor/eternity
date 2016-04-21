@@ -16,7 +16,7 @@ namespace fontanell
 			uint16_t range_shift;
 		};
 
-		struct table_head
+		struct head
 		{
 			uint32_t version;
 			uint32_t font_revision;
@@ -51,12 +51,41 @@ namespace fontanell
 			uint16_t num_tables;
 		};
 
-		struct cmap_encoding
+		struct cmap
 		{
 			uint16_t platform;
 			uint16_t encoding;
 			uint32_t offset;
 		};
+
+		struct maxp
+		{
+			uint32_t version;
+			uint16_t num_glyphs;
+			uint16_t max_points;
+			uint16_t max_contours;
+			uint16_t max_component_points;
+			uint16_t max_component_contours;
+			uint16_t max_zones;
+			uint16_t max_twilight_points;
+			uint16_t max_storage;
+			uint16_t max_function_defs;
+			uint16_t max_instruction_defs;
+			uint16_t max_stack_elements;
+			uint16_t max_size_of_instructions;
+			uint16_t max_component_elements;
+			uint16_t max_component_depth;
+		};
+
+		struct glyph_description
+		{
+			uint16_t num_contours;
+			int16_t min_x;
+			int16_t min_y;
+			int16_t max_x;
+			int16_t max_y;
+		};
+
 		#pragma pack(pop)
 	}
 
@@ -82,6 +111,11 @@ namespace fontanell
 			const char* error;
 			const char* buf;
 			size_t size;
+
+			const ttf_fmt::head* head;
+			const ttf_fmt::maxp* maxp;
+			const ttf_fmt::table_record* record_loca;
+			const ttf_fmt::table_record* record_glyf;
 		};
 		
 		const ttf_fmt::table_record* get_table(data* d, uint32_t tag)
@@ -105,6 +139,11 @@ namespace fontanell
 
 		bool map(data*d, const uint32_t* in, uint32_t count, uint32_t* out)
 		{
+			if (d->error)
+			{
+				return false;
+			}
+
 			const ttf_fmt::table_record* record = get_table(d, make_tag("cmap"));
 			if (!record)
 			{
@@ -121,7 +160,7 @@ namespace fontanell
 			}
 
 			uint16_t tables = swap16(cmap->num_tables);
-			const ttf_fmt::cmap_encoding* cmap_enc = (const ttf_fmt::cmap_encoding*)(d->buf + record_offset + sizeof(ttf_fmt::cmap_hdr));
+			const ttf_fmt::cmap* cmap_enc = (const ttf_fmt::cmap*)(d->buf + record_offset + sizeof(ttf_fmt::cmap_hdr));
 
 			for (uint16_t i=0;i!=tables;i++)
 			{
@@ -161,10 +200,65 @@ namespace fontanell
 			return false;
 		}
 
+		bool get_locations(data* d, uint32_t* glyph_index, uint32_t* location, uint32_t count)
+		{
+			if (d->error)
+			{
+				return false;
+			}
+
+			const char* begin = d->buf + swap32(d->record_loca->offset);
+			const char* end = d->buf + swap32(d->record_loca->offset) + swap32(d->record_loca->length);
+
+			if (d->head->index_to_loc_format)
+			{
+				const uint32_t* loca_begin = (const uint32_t*)(begin);
+				const uint32_t* loca_end = (const uint32_t*)(end);
+				for (uint32_t i=0;i!=count;i++)
+				{
+					const uint32_t* ptr = loca_begin + glyph_index[i];
+					if (ptr >= loca_end)
+						return false;
+					location[i] = swap32(*ptr);
+				}
+			}
+			else
+			{
+				if (d->head->index_to_loc_format)
+				{
+					const uint16_t* loca_begin = (const uint16_t*)(begin);
+					const uint16_t* loca_end = (const uint16_t*)(end);
+					for (uint32_t i=0;i!=count;i++)
+					{
+						const uint16_t* ptr = loca_begin + glyph_index[i];
+						if (ptr >= loca_end)
+							return false;
+						location[i] = swap16(*ptr);
+					}
+				}
+			}
+			return true;
+		}
+
+		bool get_glyph(data *d, uint32_t index)
+		{
+			uint32_t location;
+			if (!get_locations(d, &index, &location, 1))
+			{
+				return false;
+			}
+
+			const ttf_fmt::glyph_description* desc = (const ttf_fmt::glyph_description*)(d->buf + swap32(d->record_glyf->offset) + location);
+
+
+
+
+			return true;
+		}
+
 		data* open(const char* buf, size_t size)
 		{
 			data* d = new data();
-			d->error = 0;
 			d->buf = buf;
 			d->size = size;
 			
@@ -178,6 +272,38 @@ namespace fontanell
 			if (swap32(hdr->version) != 0x00010000)
 			{
 				d->error = "Unsupported file format";
+				return d;
+			}
+
+			const ttf_fmt::table_record* record;
+			
+			record = get_table(d, make_tag("head"));
+			if (!record)
+			{
+				d->error = "No head table";
+				return d;
+			}
+			d->head = (const ttf_fmt::head*)(d->buf + swap32(record->offset));
+
+			record = get_table(d, make_tag("maxp"));
+			if (!record)
+			{
+				d->error = "No maxp table";
+				return d;
+			}
+			d->maxp = (const ttf_fmt::maxp*)(d->buf + swap32(record->offset));
+			
+			d->record_loca = get_table(d, make_tag("loca"));
+			if (!d->record_loca)
+			{
+				d->error = "No loca table";
+				return d;
+			}
+
+			d->record_glyf = get_table(d, make_tag("glyf"));
+			if (!d->record_glyf)
+			{
+				d->error = "No glyf table";
 				return d;
 			}
 

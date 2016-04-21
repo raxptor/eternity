@@ -10,7 +10,8 @@ namespace fontanell
 	{
 		struct data;
 		data* open(const char* buf, size_t size);
-		bool map(data*d, const uint32_t* in, uint32_t count, uint32_t* out);
+		bool map(data* d, const uint32_t* in, uint32_t count, uint32_t* out);
+		bool get_glyph(data *d, uint32_t index);
 		void close(data*);
 	}
 }
