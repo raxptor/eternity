@@ -94,6 +94,11 @@ namespace fontanell
 		return ((in << 8) & 0xff00) | ((in >> 8) & 0xff);
 	}
 
+	int16_t swapi16(uint16_t in)
+	{
+		return (int16_t)((in << 8) & 0xff00) | ((in >> 8) & 0xff);
+	}
+
 	uint32_t swap32(uint32_t in)
 	{
 		return (swap16(in & 0xffff) << 16) | (swap16((in >> 16) & 0xffff));
@@ -110,6 +115,7 @@ namespace fontanell
 		{
 			const char* error;
 			const char* buf;
+			const char* end;
 			size_t size;
 
 			const ttf_fmt::head* head;
@@ -117,6 +123,19 @@ namespace fontanell
 			const ttf_fmt::table_record* record_loca;
 			const ttf_fmt::table_record* record_glyf;
 		};
+
+		template<typename T>
+		T get(data *d, uint32_t* pos)
+		{
+			const char* ptr = d->buf + *pos;
+			if (ptr < d->end)
+			{
+				(*pos) = (*pos) + sizeof(T);
+				return *((T*)ptr);				
+			}
+			d->error = "Read past end.";
+			return 0;
+		}
 		
 		const ttf_fmt::table_record* get_table(data* d, uint32_t tag)
 		{
@@ -250,8 +269,11 @@ namespace fontanell
 
 			const ttf_fmt::glyph_description* desc = (const ttf_fmt::glyph_description*)(d->buf + swap32(d->record_glyf->offset) + location);
 
-
-
+			int16_t contours = swapi16(desc->num_contours);
+			if (contours > 0)
+			{
+		
+			}
 
 			return true;
 		}
@@ -260,6 +282,7 @@ namespace fontanell
 		{
 			data* d = new data();
 			d->buf = buf;
+			d->end = buf + size;
 			d->size = size;
 			
 			const ttf_fmt::file_hdr* hdr = (const ttf_fmt::file_hdr*)buf;
